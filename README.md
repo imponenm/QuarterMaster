@@ -43,10 +43,10 @@ Default model: `gpt-4o`
 Install and run [Ollama](https://ollama.com), then pull a model:
 
 ```bash
-ollama pull llama3.2
+ollama pull qwen2.5-coder:7b
 ```
 
-Default model: `llama3.2`
+Default model: `qwen2.5-coder:7b` — understands code context while producing readable prose. Requires ~8GB RAM. Other good options: `mistral` (better prose), `qwen2.5:7b` (general purpose).
 
 ---
 

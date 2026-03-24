@@ -8,7 +8,7 @@ export type Provider = 'anthropic' | 'openai' | 'ollama';
 const DEFAULT_MODELS: Record<Provider, string> = {
   anthropic: 'claude-opus-4-6',
   openai: 'gpt-4o',
-  ollama: 'llama3.2',
+  ollama: 'qwen2.5-coder:7b',
 };
 
 export function defaultModel(provider: Provider): string {
