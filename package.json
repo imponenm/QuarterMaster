@@ -9,7 +9,7 @@
   "files": ["dist"],
   "type": "module",
   "scripts": {
-    "build": "bun build src/cli.tsx --outfile dist/cli.js --target node --format esm --banner '#!/usr/bin/env node' && chmod +x dist/cli.js",
+    "build": "bun build src/cli.tsx --outfile dist/cli.js --target node --format esm --banner '#!/usr/bin/env node' --external react-devtools-core && chmod +x dist/cli.js",
     "prepare": "bun run build",
     "start": "bun run src/cli.tsx",
     "dev": "bun --hot src/cli.tsx"
