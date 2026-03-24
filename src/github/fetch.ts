@@ -1,4 +1,8 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import type { Commit, FetchOptions, GitHubContributions, PullRequest, ReviewedPR } from './types.ts';
+
+const execFileAsync = promisify(execFile);
 
 interface GhPR {
   number: number;
@@ -18,25 +22,18 @@ interface GhCommit {
   html_url: string;
 }
 
-// Bun.$ throws a ShellError with a stderr buffer on non-zero exit
-interface ShellError {
-  stderr?: Buffer;
-  message: string;
-}
-
-function ghError(err: unknown): Error {
-  const stderr = (err as ShellError)?.stderr?.toString().trim();
-  const message = (err as ShellError)?.message ?? String(err);
-  return new Error(stderr || message);
+async function gh(...args: string[]): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync('gh', args);
+    return stdout;
+  } catch (err: any) {
+    const stderr = err.stderr?.toString().trim();
+    throw new Error(stderr || err.message);
+  }
 }
 
 async function getUsername(): Promise<string> {
-  try {
-    const result = await Bun.$`gh api user --jq '.login'`.text();
-    return result.trim();
-  } catch (err) {
-    throw ghError(err);
-  }
+  return (await gh('api', 'user', '--jq', '.login')).trim();
 }
 
 // Build the positional search qualifiers (date range, scope).
@@ -57,21 +54,16 @@ async function fetchAuthoredPRs(username: string, opts: FetchOptions): Promise<P
   const query = buildScopeQuery(opts);
   const fields = 'number,title,body,url,repository,closedAt';
 
-  try {
-    const raw =
-      await Bun.$`gh search prs ${query} --author ${username} --merged --json ${fields} --limit 100`.text();
-    const prs = JSON.parse(raw) as GhPR[];
-    return prs.map((pr) => ({
-      number: pr.number,
-      title: pr.title,
-      body: pr.body ?? '',
-      url: pr.url,
-      repo: pr.repository.nameWithOwner,
-      mergedAt: pr.closedAt,
-    }));
-  } catch (err) {
-    throw ghError(err);
-  }
+  const raw = await gh('search', 'prs', query, '--author', username, '--merged', '--json', fields, '--limit', '100');
+  const prs = JSON.parse(raw) as GhPR[];
+  return prs.map((pr) => ({
+    number: pr.number,
+    title: pr.title,
+    body: pr.body ?? '',
+    url: pr.url,
+    repo: pr.repository.nameWithOwner,
+    mergedAt: pr.closedAt,
+  }));
 }
 
 async function fetchReviewedPRs(username: string, opts: FetchOptions): Promise<ReviewedPR[]> {
@@ -79,24 +71,19 @@ async function fetchReviewedPRs(username: string, opts: FetchOptions): Promise<R
   const query = buildScopeQuery(opts, [`-author:${username}`]);
   const fields = 'number,title,url,repository';
 
-  try {
-    const raw =
-      await Bun.$`gh search prs ${query} --commenter ${username} --merged --json ${fields} --limit 100`.text();
-    const prs = JSON.parse(raw) as Array<{
-      number: number;
-      title: string;
-      url: string;
-      repository: { nameWithOwner: string };
-    }>;
-    return prs.map((pr) => ({
-      number: pr.number,
-      title: pr.title,
-      url: pr.url,
-      repo: pr.repository.nameWithOwner,
-    }));
-  } catch (err) {
-    throw ghError(err);
-  }
+  const raw = await gh('search', 'prs', query, '--commenter', username, '--merged', '--json', fields, '--limit', '100');
+  const prs = JSON.parse(raw) as Array<{
+    number: number;
+    title: string;
+    url: string;
+    repository: { nameWithOwner: string };
+  }>;
+  return prs.map((pr) => ({
+    number: pr.number,
+    title: pr.title,
+    url: pr.url,
+    repo: pr.repository.nameWithOwner,
+  }));
 }
 
 async function fetchCommitsForRepo(
@@ -105,19 +92,15 @@ async function fetchCommitsForRepo(
   opts: FetchOptions,
 ): Promise<Commit[]> {
   const url = `repos/${repo}/commits?author=${username}&since=${opts.from}T00:00:00Z&until=${opts.to}T23:59:59Z&per_page=100`;
-  try {
-    const raw = await Bun.$`gh api ${url}`.text();
-    const commits = JSON.parse(raw) as GhCommit[];
-    return commits.map((c) => ({
-      sha: c.sha.slice(0, 7),
-      message: c.commit.message.split('\n')[0] ?? c.commit.message,
-      url: c.html_url,
-      repo,
-      date: c.commit.author.date,
-    }));
-  } catch (err) {
-    throw ghError(err);
-  }
+  const raw = await gh('api', url);
+  const commits = JSON.parse(raw) as GhCommit[];
+  return commits.map((c) => ({
+    sha: c.sha.slice(0, 7),
+    message: c.commit.message.split('\n')[0] ?? c.commit.message,
+    url: c.html_url,
+    repo,
+    date: c.commit.author.date,
+  }));
 }
 
 async function fetchDirectCommits(username: string, opts: FetchOptions): Promise<Commit[]> {

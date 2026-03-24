@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { readFile } from 'node:fs/promises';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 
@@ -24,7 +25,7 @@ export function AchievementsSelector({ onSubmit }: Props) {
       return;
     }
     try {
-      const content = await Bun.file(trimmed).text();
+      const content = await readFile(trimmed, 'utf-8');
       onSubmit(content);
     } catch {
       setError(`Could not read file: ${trimmed}`);

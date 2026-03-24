@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { writeFile } from 'node:fs/promises';
 import { Box, Text, useApp } from 'ink';
 import { Header } from './components/Header.tsx';
 import { DateRangePicker } from './components/DateRangePicker.tsx';
@@ -70,7 +71,7 @@ export function App({ repos, org, provider, model, onComplete }: AppProps) {
         const text = await summarize(data, goalsContent, achievementsContent, provider, model);
 
         const filename = `review-${dateRange.from}-${dateRange.to}.md`;
-        await Bun.write(filename, text);
+        await writeFile(filename, text);
         setOutputPath(filename);
 
         setStep('done');

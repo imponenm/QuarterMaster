@@ -6,13 +6,25 @@ _Problem:_ Every quarter at work, I'd spend time manually digging through GitHub
 
 _Solution:_ QuarterMaster automates that whole process. It fetches your merged PRs, code review activity, and direct commits, then passes them to an LLM to generate a structured review. If your team has written down their goals, you can point it at a markdown file and it'll align your work to those goals automatically. If you have other accomplishments besides GitHub contributions, you can add those as well.
 
+## Installation
+
+```bash
+npm install -g quartermaster
+```
+
+Or run without installing:
+
+```bash
+bunx quartermaster
+npx quartermaster
+```
+
 ## Prerequisites
 
-- [Bun](https://bun.sh) `>= 1.0`
 - [GitHub CLI](https://cli.github.com) (`gh`) — authenticated via `gh auth login`
 - An API key for your chosen LLM provider (see [LLM Providers](#llm-providers))
 
-## Setup
+## Development Setup
 
 ```bash
 git clone https://github.com/you/quartermaster
@@ -57,7 +69,7 @@ If both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are set, Anthropic is used unle
 ## Usage
 
 ```bash
-bun run src/cli.tsx
+quartermaster
 ```
 
 QuarterMaster will walk you through selecting a review period, optionally providing a goals file, and optionally providing an achievements file, then fetch your contributions and generate a review.
@@ -75,24 +87,24 @@ QuarterMaster will walk you through selecting a review period, optionally provid
 
 ```bash
 # Interactive — auto-detects provider from env
-bun run src/cli.tsx
+quartermaster
 
 # Scope to a specific repo
-bun run src/cli.tsx --repo acme-corp/api
+quartermaster --repo acme-corp/api
 
 # Multiple repos
-bun run src/cli.tsx --repo acme-corp/api --repo acme-corp/web
+quartermaster --repo acme-corp/api --repo acme-corp/web
 
 # Scope to an entire org
-bun run src/cli.tsx --org acme-corp
+quartermaster --org acme-corp
 
 # Use OpenAI instead of Anthropic
-bun run src/cli.tsx --provider openai
+quartermaster --provider openai
 
 # Use a specific model
-bun run src/cli.tsx --model claude-haiku-4-5-20251001
-bun run src/cli.tsx --provider openai --model gpt-4-turbo
-bun run src/cli.tsx --provider ollama --model mistral
+quartermaster --model claude-haiku-4-5-20251001
+quartermaster --provider openai --model gpt-4-turbo
+quartermaster --provider ollama --model mistral
 ```
 
 ## What Gets Fetched
