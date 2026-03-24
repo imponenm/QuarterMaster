@@ -18,11 +18,12 @@ export function defaultModel(provider: Provider): string {
 export async function summarize(
   contributions: GitHubContributions,
   goalsContent: string | null,
+  achievementsContent: string | null,
   provider: Provider,
   model?: string,
 ): Promise<string> {
   const resolvedModel = model ?? DEFAULT_MODELS[provider];
-  const prompt = buildPrompt(contributions, goalsContent);
+  const prompt = buildPrompt(contributions, goalsContent, achievementsContent);
 
   if (provider === 'anthropic') {
     const client = new Anthropic();
@@ -53,7 +54,7 @@ export async function summarize(
   return text;
 }
 
-function buildPrompt(contributions: GitHubContributions, goalsContent: string | null): string {
+function buildPrompt(contributions: GitHubContributions, goalsContent: string | null, achievementsContent: string | null): string {
   const { authoredPRs, reviewedPRs, commits, dateRange, username } = contributions;
 
   const authoredSection =
@@ -81,9 +82,17 @@ function buildPrompt(contributions: GitHubContributions, goalsContent: string | 
     ? `\n## Organizational / Team Goals\n\n${goalsContent}\n`
     : '';
 
+  const achievementsSection = achievementsContent
+    ? `\n## Additional Achievements\n\n${achievementsContent}\n`
+    : '';
+
   const alignmentInstructions = goalsContent
     ? `1. Group contributions by the organizational goals listed above, citing specific PRs as evidence\n2. Add an "Other Contributions" section for work that doesn't map to a stated goal`
     : `1. Group contributions by theme or project area`;
+
+  const achievementsInstruction = achievementsContent
+    ? `\n7. Incorporate the additional achievements naturally alongside GitHub contributions — treat them as equally valid evidence of impact`
+    : '';
 
   return `You are helping an engineer (@${username}) write a professional performance review.
 
@@ -97,7 +106,7 @@ ${authoredSection}
 
 ### Pull Requests Reviewed / Commented On (${reviewedPRs.length})
 ${reviewedSection}
-${commitsSection}${goalsSection}
+${commitsSection}${goalsSection}${achievementsSection}
 ## Instructions
 
 Write a professional performance review in first person. The review should:
@@ -105,7 +114,7 @@ ${alignmentInstructions}
 3. Include a "Collaboration & Code Review" section highlighting review activity
 4. Be honest about scope — if the period was light, reflect that professionally
 5. Use clear markdown headers and bullet points
-6. Use first person ("I shipped...", "I collaborated on...", "I reviewed...")
+6. Use first person ("I shipped...", "I collaborated on...", "I reviewed...")${achievementsInstruction}
 
 Output only the review document as markdown. No preamble or explanation.`;
 }

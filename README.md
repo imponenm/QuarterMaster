@@ -2,7 +2,9 @@
 
 > Automate your quarterly, semi-annual, and annual performance reviews using GitHub contributions.
 
-QuarterMaster fetches your merged PRs, code review activity, and direct commits from GitHub, then uses an LLM to write a structured review — optionally aligned to your team's goals.
+I built this to solve my own problem. Every quarter at work, I'd spend time manually digging through GitHub, copying PR titles and descriptions into whatever LLM was handy, and prompting it to turn everything into a performance review. It works, but it's tedious having to re-run scripts and re-prompt whatever LLM I'm given access to.
+
+QuarterMaster automates that whole process. It fetches your merged PRs, code review activity, and direct commits, then passes them to an LLM to generate a structured review. If your team has written down their goals, you can point it at a markdown file and it'll align your work to those goals automatically. If you have other accomplishments besides GitHub contributions, you can add those as well.
 
 ## Prerequisites
 
@@ -58,7 +60,7 @@ If both `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are set, Anthropic is used unle
 bun run src/cli.tsx
 ```
 
-QuarterMaster will walk you through selecting a review period and optionally providing a goals file, then fetch your contributions and generate a review.
+QuarterMaster will walk you through selecting a review period, optionally providing a goals file, and optionally providing an achievements file, then fetch your contributions and generate a review.
 
 ## Options
 
@@ -120,6 +122,22 @@ Create a markdown file listing your team's or company's goals, then provide its 
 ```
 
 QuarterMaster will align your contributions to these goals in the generated review.
+
+## Achievements File
+
+Create a markdown file with accomplishments that don't show up in GitHub — mentoring, design work, on-call incidents, cross-team collaboration, presentations, interviews, etc. Provide its path when prompted after the goals step:
+
+```markdown
+# Q1 2026 Achievements
+
+- Mentored two new engineers through onboarding over 6 weeks
+- Led the incident post-mortem for the Feb 12 outage; published runbook improvements
+- Interviewed 8 candidates for the platform team
+- Presented the API reliability roadmap to the engineering org
+- On-call primary for 3 weeks; resolved 12 pages
+```
+
+These are included in the generated review alongside your GitHub contributions and treated as equally valid evidence of impact.
 
 ## Output
 
