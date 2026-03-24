@@ -9,14 +9,14 @@ _Solution:_ QuarterMaster automates that whole process. It fetches your merged P
 ## Installation
 
 ```bash
-npm install -g quartermaster
+npm install -g @imponenm/quartermaster
 ```
 
 Or run without installing:
 
 ```bash
-bunx quartermaster
-npx quartermaster
+bunx @imponenm/quartermaster
+npx @imponenm/quartermaster
 ```
 
 ## Prerequisites
