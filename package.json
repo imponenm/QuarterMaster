@@ -6,6 +6,7 @@
   "bin": {
     "quartermaster": "src/cli.tsx"
   },
+  "files": ["src"],
   "type": "module",
   "scripts": {
     "start": "bun run src/cli.tsx",
