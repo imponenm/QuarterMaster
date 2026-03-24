@@ -1,6 +1,6 @@
 {
   "name": "@imponenm/quartermaster",
-  "version": "0.1.1",
+  "version": "0.1.11",
   "description": "Automate quarterly, semi-annual, and annual reviews using GitHub contributions",
   "module": "src/cli.tsx",
   "bin": {
