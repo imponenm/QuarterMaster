@@ -1,5 +1,5 @@
 {
-  "name": "quartermaster",
+  "name": "@imponenm/quartermaster",
   "version": "0.1.0",
   "description": "Automate quarterly, semi-annual, and annual reviews using GitHub contributions",
   "module": "src/cli.tsx",
@@ -9,7 +9,7 @@
   "files": ["dist"],
   "type": "module",
   "scripts": {
-    "build": "bun build src/cli.tsx --outfile dist/cli.js --target node --format esm --banner '#!/usr/bin/env node' --external react-devtools-core && chmod +x dist/cli.js",
+    "build": "bun build src/cli.tsx --outfile dist/cli.js --target node --format esm --banner '#!/usr/bin/env node' --external react-devtools-core && (chmod +x dist/cli.js || true)",
     "prepare": "bun run build",
     "start": "bun run src/cli.tsx",
     "dev": "bun --hot src/cli.tsx"
