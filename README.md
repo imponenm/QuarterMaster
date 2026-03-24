@@ -2,9 +2,9 @@
 
 > Automate your quarterly, semi-annual, and annual performance reviews using GitHub contributions.
 
-I built this to solve my own problem. Every quarter at work, I'd spend time manually digging through GitHub, copying PR titles and descriptions into whatever LLM was handy, and prompting it to turn everything into a performance review. It works, but it's tedious having to re-run scripts and re-prompt whatever LLM I'm given access to.
+_Problem:_ Every quarter at work, I'd spend time manually digging through GitHub, copying PR titles and descriptions into whatever LLM was handy, and prompting it to turn everything into a performance review. It works, but it's tedious having to re-run scripts and re-prompt whatever LLM I'm given access to.
 
-QuarterMaster automates that whole process. It fetches your merged PRs, code review activity, and direct commits, then passes them to an LLM to generate a structured review. If your team has written down their goals, you can point it at a markdown file and it'll align your work to those goals automatically. If you have other accomplishments besides GitHub contributions, you can add those as well.
+_Solution:_ QuarterMaster automates that whole process. It fetches your merged PRs, code review activity, and direct commits, then passes them to an LLM to generate a structured review. If your team has written down their goals, you can point it at a markdown file and it'll align your work to those goals automatically. If you have other accomplishments besides GitHub contributions, you can add those as well.
 
 ## Prerequisites
 
