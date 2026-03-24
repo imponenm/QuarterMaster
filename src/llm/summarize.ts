@@ -54,7 +54,7 @@ export async function summarize(
 }
 
 function buildPrompt(contributions: GitHubContributions, goalsContent: string | null): string {
-  const { authoredPRs, reviewedPRs, dateRange, username } = contributions;
+  const { authoredPRs, reviewedPRs, commits, dateRange, username } = contributions;
 
   const authoredSection =
     authoredPRs.length === 0
@@ -70,6 +70,12 @@ function buildPrompt(contributions: GitHubContributions, goalsContent: string | 
     reviewedPRs.length === 0
       ? '_No reviewed PRs in this period._'
       : reviewedPRs.map((pr) => `- [${pr.repo}#${pr.number}] ${pr.title}`).join('\n');
+
+  const commitsSection =
+    commits.length === 0
+      ? ''
+      : `\n### Direct Commits (${commits.length})\n` +
+        commits.map((c) => `- \`${c.sha}\` ${c.message} (${c.repo})`).join('\n') + '\n';
 
   const goalsSection = goalsContent
     ? `\n## Organizational / Team Goals\n\n${goalsContent}\n`
@@ -91,7 +97,7 @@ ${authoredSection}
 
 ### Pull Requests Reviewed / Commented On (${reviewedPRs.length})
 ${reviewedSection}
-${goalsSection}
+${commitsSection}${goalsSection}
 ## Instructions
 
 Write a professional performance review in first person. The review should:

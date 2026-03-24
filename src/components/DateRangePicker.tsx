@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function DateRangePicker({ onSelect }: Props) {
-  const items = getPresets().map((p) => ({ label: p.label, value: p.range }));
+  const items = getPresets().map((p) => ({ label: p.label, value: p.range, key: p.label }));
 
   return (
     <Box flexDirection="column" gap={1}>

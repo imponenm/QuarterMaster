@@ -4,7 +4,7 @@ export interface PullRequest {
   body: string;
   url: string;
   repo: string;
-  mergedAt: string | null;
+  mergedAt: string | null; // populated from closedAt (gh search prs doesn't expose mergedAt)
 }
 
 export interface ReviewedPR {
@@ -14,10 +14,19 @@ export interface ReviewedPR {
   repo: string;
 }
 
+export interface Commit {
+  sha: string;
+  message: string; // first line only
+  url: string;
+  repo: string;
+  date: string;
+}
+
 export interface GitHubContributions {
   username: string;
   authoredPRs: PullRequest[];
   reviewedPRs: ReviewedPR[];
+  commits: Commit[];
   dateRange: { from: string; to: string; label: string };
 }
 

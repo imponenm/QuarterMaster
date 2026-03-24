@@ -1,4 +1,4 @@
-import type { FetchOptions, GitHubContributions, PullRequest, ReviewedPR } from './types.ts';
+import type { Commit, FetchOptions, GitHubContributions, PullRequest, ReviewedPR } from './types.ts';
 
 interface GhPR {
   number: number;
@@ -6,21 +6,43 @@ interface GhPR {
   body: string;
   url: string;
   repository: { nameWithOwner: string };
-  mergedAt: string | null;
+  closedAt: string | null;
 }
 
-function buildQuery(
-  qualifier: 'author' | 'commenter',
-  username: string,
-  opts: FetchOptions,
-  excludeAuthor = false,
-): string {
-  const parts = [
-    `${qualifier}:${username}`,
-    'is:pr',
-    'is:merged',
-    `merged:${opts.from}..${opts.to}`,
-  ];
+interface GhCommit {
+  sha: string;
+  commit: {
+    message: string;
+    author: { date: string };
+  };
+  html_url: string;
+}
+
+// Bun.$ throws a ShellError with a stderr buffer on non-zero exit
+interface ShellError {
+  stderr?: Buffer;
+  message: string;
+}
+
+function ghError(err: unknown): Error {
+  const stderr = (err as ShellError)?.stderr?.toString().trim();
+  const message = (err as ShellError)?.message ?? String(err);
+  return new Error(stderr || message);
+}
+
+async function getUsername(): Promise<string> {
+  try {
+    const result = await Bun.$`gh api user --jq '.login'`.text();
+    return result.trim();
+  } catch (err) {
+    throw ghError(err);
+  }
+}
+
+// Build the positional search qualifiers (date range, scope).
+// Username and merge state are passed as flags instead, which is more reliable.
+function buildScopeQuery(opts: FetchOptions, extraParts: string[] = []): string {
+  const parts = [`merged:${opts.from}..${opts.to}`, ...extraParts];
 
   if (opts.repos && opts.repos.length > 0) {
     for (const repo of opts.repos) parts.push(`repo:${repo}`);
@@ -28,40 +50,83 @@ function buildQuery(
     parts.push(`org:${opts.org}`);
   }
 
-  if (excludeAuthor) parts.push(`-author:${username}`);
-
   return parts.join(' ');
 }
 
-async function getUsername(): Promise<string> {
-  const result = await Bun.$`gh api user --jq '.login'`.text();
-  return result.trim();
-}
-
 async function fetchAuthoredPRs(username: string, opts: FetchOptions): Promise<PullRequest[]> {
-  const query = buildQuery('author', username, opts);
-  const raw = await Bun.$`gh search prs ${query} --json number,title,body,url,repository,mergedAt --limit 100`.text();
-  const prs = JSON.parse(raw) as GhPR[];
-  return prs.map((pr) => ({
-    number: pr.number,
-    title: pr.title,
-    body: pr.body ?? '',
-    url: pr.url,
-    repo: pr.repository.nameWithOwner,
-    mergedAt: pr.mergedAt,
-  }));
+  const query = buildScopeQuery(opts);
+  const fields = 'number,title,body,url,repository,closedAt';
+
+  try {
+    const raw =
+      await Bun.$`gh search prs ${query} --author ${username} --merged --json ${fields} --limit 100`.text();
+    const prs = JSON.parse(raw) as GhPR[];
+    return prs.map((pr) => ({
+      number: pr.number,
+      title: pr.title,
+      body: pr.body ?? '',
+      url: pr.url,
+      repo: pr.repository.nameWithOwner,
+      mergedAt: pr.closedAt,
+    }));
+  } catch (err) {
+    throw ghError(err);
+  }
 }
 
 async function fetchReviewedPRs(username: string, opts: FetchOptions): Promise<ReviewedPR[]> {
-  const query = buildQuery('commenter', username, opts, true);
-  const raw = await Bun.$`gh search prs ${query} --json number,title,url,repository --limit 100`.text();
-  const prs = JSON.parse(raw) as Array<{ number: number; title: string; url: string; repository: { nameWithOwner: string } }>;
-  return prs.map((pr) => ({
-    number: pr.number,
-    title: pr.title,
-    url: pr.url,
-    repo: pr.repository.nameWithOwner,
-  }));
+  // Find merged PRs the user commented on but didn't author
+  const query = buildScopeQuery(opts, [`-author:${username}`]);
+  const fields = 'number,title,url,repository';
+
+  try {
+    const raw =
+      await Bun.$`gh search prs ${query} --commenter ${username} --merged --json ${fields} --limit 100`.text();
+    const prs = JSON.parse(raw) as Array<{
+      number: number;
+      title: string;
+      url: string;
+      repository: { nameWithOwner: string };
+    }>;
+    return prs.map((pr) => ({
+      number: pr.number,
+      title: pr.title,
+      url: pr.url,
+      repo: pr.repository.nameWithOwner,
+    }));
+  } catch (err) {
+    throw ghError(err);
+  }
+}
+
+async function fetchCommitsForRepo(
+  repo: string,
+  username: string,
+  opts: FetchOptions,
+): Promise<Commit[]> {
+  const url = `repos/${repo}/commits?author=${username}&since=${opts.from}T00:00:00Z&until=${opts.to}T23:59:59Z&per_page=100`;
+  try {
+    const raw = await Bun.$`gh api ${url}`.text();
+    const commits = JSON.parse(raw) as GhCommit[];
+    return commits.map((c) => ({
+      sha: c.sha.slice(0, 7),
+      message: c.commit.message.split('\n')[0] ?? c.commit.message,
+      url: c.html_url,
+      repo,
+      date: c.commit.author.date,
+    }));
+  } catch (err) {
+    throw ghError(err);
+  }
+}
+
+async function fetchDirectCommits(username: string, opts: FetchOptions): Promise<Commit[]> {
+  if (!opts.repos || opts.repos.length === 0) return [];
+
+  const results = await Promise.all(
+    opts.repos.map((repo) => fetchCommitsForRepo(repo, username, opts)),
+  );
+  return results.flat();
 }
 
 export async function fetchContributions(opts: FetchOptions): Promise<GitHubContributions> {
@@ -74,12 +139,24 @@ export async function fetchContributions(opts: FetchOptions): Promise<GitHubCont
   opts.onProgress?.(`Found ${authoredPRs.length} authored PRs — fetching reviewed PRs...`);
   const reviewedPRs = await fetchReviewedPRs(username, opts);
 
-  opts.onProgress?.(`Found ${reviewedPRs.length} reviewed PRs. Done.`);
+  const repoCount = opts.repos?.length ?? 0;
+  if (repoCount > 0) {
+    opts.onProgress?.(`Found ${reviewedPRs.length} reviewed PRs — fetching direct commits...`);
+  } else {
+    opts.onProgress?.(`Found ${reviewedPRs.length} reviewed PRs. Done.`);
+  }
+
+  const commits = await fetchDirectCommits(username, opts);
+
+  if (repoCount > 0) {
+    opts.onProgress?.(`Found ${commits.length} direct commits. Done.`);
+  }
 
   return {
     username,
     authoredPRs,
     reviewedPRs,
+    commits,
     dateRange: { from: opts.from, to: opts.to, label: '' },
   };
 }
